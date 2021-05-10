@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"flag"
 	"fmt"
 	"io"
 	"log"
@@ -96,14 +97,22 @@ func checkDirectorio(directorio string) {
 	}
 }
 
-const FINAL_DIR = "/home/ubuntu/Downloads/virtual_dataset/dataJoin_ImageResize/"
+//const FINAL_DIR = "/home/ubuntu/Downloads/virtual_dataset/dataJoin_ImageResize/"
 
-//const FINAL_DIR_IMAGES = "../dataJoin_images/"
-//const FINAL_DIR_LABELS = "../dataJoin_labels/"
+const FINAL_DIR_IMAGES = "../dataJoin_images/"
+const FINAL_DIR_LABELS = "../dataJoin_labels/"
 
 func main() {
+	/*sourceDir := flag.String("sourceDir", "/home/carpetSrc", "Directorio desde donde se estraeran las imagenes")
+	finalDir := flag.String("finalDir", "/home/carpetFinal", "Directorio destino de las imagenes")
+	resize := flag.String("resizeImg", "-", "Tamaño al que se quieren rescalar las imagenes 950x544, si no se indica no se escalan")
+	*/
+	cntImg := flag.Int("cntImg", 10000000, "Cantidad de imagenes a copiar")
+	flag.Parse()
+	cnt := 0
 
-	checkDirectorio(FINAL_DIR)
+	checkDirectorio(FINAL_DIR_IMAGES)
+	checkDirectorio(FINAL_DIR_LABELS)
 	archivosTexto := [...]string{"../dataset_1088x612/train.virtual.txt", "../dataset_1088x612/valid.virtual.txt"}
 	for _, name := range archivosTexto {
 		archivo, err := os.Open(name)
@@ -114,64 +123,22 @@ func main() {
 
 		scanner := bufio.NewScanner(archivo)
 		for scanner.Scan() {
-			linea := scanner.Text()
-			splitLinea := strings.Split(linea, "/")
-
-			newName := splitLinea[2] + "_" + splitLinea[3] + "_" + splitLinea[4]
-
-			vipsExec("/home/ubuntu/Downloads/virtual_dataset"+linea, FINAL_DIR+newName)
-
-			//vipsthumbnail(".."+linea, FINAL_DIR+newName)
-
-			//resize imagenes pero lento
-			/*file, err := os.Open(".." + linea)
-			if err != nil {
-				log.Fatal(err)
+			if cnt += 1; cnt <= *cntImg {
+				linea := scanner.Text()
+				splitLinea := strings.Split(linea, "/")
+				newName := splitLinea[2] + "_" + splitLinea[3] + "_" + splitLinea[4]
+				//Resize imagenes
+				//vipsExec("/home/ubuntu/Downloads/virtual_dataset"+linea, FINAL_DIR_IMAGES+newName)
+				err := CopyFile(".."+linea, FINAL_DIR_IMAGES+newName)
+				if err != nil {
+					log.Fatal(err)
+				}
+				err1 := CopyFile(".."+strings.Replace(linea, ".png", ".txt", 1),
+					FINAL_DIR_LABELS+strings.Replace(newName, ".png", ".txt", 1))
+				if err1 != nil {
+					log.Fatal(err)
+				}
 			}
-
-			// decode jpeg into image.Image
-			img, err := png.Decode(file)
-			if err != nil {
-				log.Fatal(err)
-			}
-			file.Close()
-
-			// resize to width 1000 using Lanczos resampling
-			// and preserve aspect ratio
-			m := resize.Resize(960, 544, img, resize.Lanczos3)
-
-			out, err := os.Create(FINAL_DIR + newName)
-			if err != nil {
-				log.Fatal(err)
-			}
-			defer out.Close()
-
-			// write new image to file
-			png.Encode(out, m)
-
-			//resize imagenes pero lento
-			src, err := imaging.Open(".." + linea)
-			if err != nil {
-				log.Fatalf("failed to open image: %v", err)
-			}
-
-			src_Resize := imaging.Resize(src, 960, 544, imaging.Lanczos)
-
-			err = imaging.Save(src_Resize, FINAL_DIR+newName)
-			if err != nil {
-				log.Fatalf("failed to save image: %v", err)
-			}
-
-			///Copiar y pegar imagenes
-			/*err := CopyFile(".."+linea, FINAL_DIR+newName)
-			if err != nil {
-				log.Fatal(err)
-			}
-			err1 := CopyFile(".."+strings.Replace(linea, ".png", ".txt", 1),
-				FINAL_DIR+strings.Replace(newName, ".png", ".txt", 1))
-			if err1 != nil {
-				log.Fatal(err)
-			}*/
 		}
 	}
 }
