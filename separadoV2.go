@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"container/list"
 	"flag"
 	"fmt"
@@ -10,6 +11,7 @@ import (
 	"os"
 	"os/exec"
 	"runtime"
+	"strconv"
 	"strings"
 )
 
@@ -26,21 +28,22 @@ func main() {
 	for e := l.Front(); e != nil; e = e.Next() {
 		if cnt += 1; cnt <= *cntImg {
 			newName := getNewName(e.Value.(string))
+			ext_aux := strings.Split(newName, ".")
+			ext := strings.ToLower(ext_aux[len(ext_aux)-1])
+
 			if *resize {
 				dir, err := os.Getwd()
 				if err != nil {
 					log.Fatal(err)
 				}
 				vipsExec(dir+"/"+e.Value.(string), dir+"/"+FINAL_DIR+newName)
+				//resizeLabels(strings.Replace(e.Value.(string), "."+ext, ".txt", 1))
 			} else {
 				err := CopyFile(e.Value.(string), FINAL_DIR+newName)
 				if err != nil {
 					log.Fatal(err)
 				}
 			}
-			ext_aux := strings.Split(newName, ".")
-			ext := strings.ToLower(ext_aux[len(ext_aux)-1])
-
 			err := CopyFile(strings.Replace(e.Value.(string), "."+ext, ".txt", 1),
 				FINAL_DIR+strings.Replace(newName, "."+ext, ".txt", 1))
 			if err != nil {
@@ -48,6 +51,70 @@ func main() {
 			}
 		}
 	}
+}
+
+func resizeLabels(src string) {
+
+	kitti_line := "{1} 0.00 0 0.00 {2} {3} {4} {5} 0.00 0.00 0.00 0.00 0.00 0.00 0.00"
+	file, err := os.Open(src)
+	if err != nil {
+		log.Fatal(err)
+	}
+	fileScanner := bufio.NewScanner(file)
+	for fileScanner.Scan() {
+		labels_split := strings.Split(fileScanner.Text(), " ")
+		label := " "
+		if labels_split[0] == "0" {
+			label = "sinCasco"
+		} else if labels_split[0] == "1" {
+			label = "conCasco"
+		} else if labels_split[0] == "2" {
+			label = "proteccionAuditiva"
+		} else if labels_split[0] == "3" {
+			label = "mascaraSoldador"
+		} else if labels_split[0] == "4" {
+			label = "pechoDesnudo"
+		} else if labels_split[0] == "5" {
+			label = "chalecoReflectante"
+		} else if labels_split[0] == "6" {
+			label = "persona"
+		}
+
+		a, _ := strconv.ParseFloat(labels_split[1], 32)
+		b, _ := strconv.ParseFloat(labels_split[2], 32)
+		c, _ := strconv.ParseFloat(labels_split[3], 32)
+		d, _ := strconv.ParseFloat(labels_split[4], 32)
+
+		xmin := (a - 0.5*c) * 544
+		ymin := (b - 0.5*d) * 950
+		xmax := (a + 0.5*c) * 544
+		ymax := (b + 0.5*d) * 950
+
+		if xmin < 0 {
+			xmin = 0
+		}
+		if ymin < 0 {
+			ymin = 0
+		}
+		if xmax > 544 {
+			xmax = 544
+		}
+		if ymax > 950 {
+			ymax = 950
+		}
+		xmin_ := strconv.FormatFloat(xmin, 'E', -1, 32)
+		ymin_ := strconv.FormatFloat(ymin, 'E', -1, 32)
+		xmax_ := strconv.FormatFloat(xmax, 'E', -1, 32)
+		ymax_ := strconv.FormatFloat(ymax, 'E', -1, 32)
+
+		kitti_lineWrite := strings.Replace(kitti_line, "{1}", label, 1)
+		kitti_lineWrite = strings.Replace(kitti_lineWrite, "{2}", xmin_, 1)
+		kitti_lineWrite = strings.Replace(kitti_lineWrite, "{3}", ymin_, 1)
+		kitti_lineWrite = strings.Replace(kitti_lineWrite, "{4}", xmax_, 1)
+		kitti_lineWrite = strings.Replace(kitti_lineWrite, "{5}", ymax_, 1)
+		fmt.Println(kitti_lineWrite)
+	}
+	file.Close()
 }
 
 func listDirectoryRecursive(src string) (l_images *list.List) {

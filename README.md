@@ -24,5 +24,5 @@ sudo ldconfig
 git clone https://github.com/ClaudioCampuzano/Image-separator-and-rescaling.git
 cd Image-separator-and-rescaling
 go mod tidy
-go run .
+go run separadoV2.go -cntImg 20 -resize
 ```
