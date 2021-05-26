@@ -7,6 +7,7 @@ wget https://github.com/libvips/libvips/releases/download/v8.10.6/vips-8.10.6.ta
 tar xf vips-8.10.6.tar.gz
 cd vips-8.10.6/
 sudo apt-get install build-essential pkg-config glib2.0-dev libexpat1-dev
+./configure
 ```
 
 You’ll need the dev packages for the file format support you want. For basic jpeg and tiff support, you’ll need libtiff5-dev, libjpeg-turbo8-dev, and libgsf-1-dev. See the Dependencies section below for a full list of the things that libvips can be configured to use.
